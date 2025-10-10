@@ -1023,6 +1023,16 @@ def test(HandlerClass=BaseHTTPRequestHandler,
             print("\nKeyboard interrupt received, exiting.")
             sys.exit(0)
 
+def _parse_extra_header(arg, parser):
+    try:
+        header, value = arg.split(':', 1)
+        header = header.strip()
+        if not header:
+            parser.error(f"Header {arg} must have a non-empty name")
+        value = value.strip()
+        return (header, value)
+    except ValueError:
+        parser.error(f"Header {arg} must be of the form Header: value")
 
 def _main(args=None):
     import argparse
@@ -1048,9 +1058,8 @@ def _main(args=None):
     parser.add_argument('port', default=8000, type=int, nargs='?',
                         help='bind to this port '
                              '(default: %(default)s)')
-    parser.add_argument('-H', '--header', nargs=2, action='append',
-                        metavar=('HEADER', 'VALUE'),
-                        help='Add a custom response header '
+    parser.add_argument('-H', '--header', action='append',
+                        help='Add a custom response header of the form Header: value '
                              '(can be specified multiple times)')
     args = parser.parse_args(args)
 
@@ -1068,6 +1077,10 @@ def _main(args=None):
         except OSError as e:
             parser.error(f"Failed to read TLS password file: {e}")
 
+    extra_response_headers = [
+        _parse_extra_header(h, parser) for h in args.header or []
+    ]
+
     # ensure dual-stack is not disabled; ref #38907
     class DualStackServerMixin:
 
@@ -1081,7 +1094,7 @@ def _main(args=None):
         def finish_request(self, request, client_address):
             self.RequestHandlerClass(request, client_address, self,
                                      directory=args.directory,
-                                     extra_response_headers=args.header)
+                                     extra_response_headers=extra_response_headers)
 
     class HTTPDualStackServer(DualStackServerMixin, ThreadingHTTPServer):
         pass

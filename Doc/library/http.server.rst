@@ -556,7 +556,7 @@ The following options are accepted:
 
    .. versionadded:: 3.14
 
-.. option:: -H, --header <header> <value>
+.. option:: -H, --header "<header>: <value>"
 
    Specify an additional extra HTTP Response Header to send on successful HTTP
    200 responses. Can be used multiple times to send additional custom response

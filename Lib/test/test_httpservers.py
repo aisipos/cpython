@@ -1451,19 +1451,26 @@ class CommandLineTestCase(unittest.TestCase):
                     mock_func.reset_mock()
 
     @mock.patch('http.server.test')
-    def test_header_flag(self, mock_func):
+    def test_extra_header_flag(self, mock_func):
         call_args = self.args
-        self.invoke_httpd('--header', 'h1', 'v1', '-H', 'h2', 'v2')
+        self.invoke_httpd('--header', 'h1: v1', '-H', 'h2: v2')
         mock_func.assert_called_once_with(**call_args)
         mock_func.reset_mock()
 
     def test_extra_header_flag_too_few_args(self):
         with self.assertRaises(SystemExit):
-            self.invoke_httpd('--header', 'h1')
+            self.invoke_httpd('--header')
 
     def test_extra_header_flag_too_many_args(self):
         with self.assertRaises(SystemExit):
-            self.invoke_httpd('--header', 'h1', 'v1', 'h2')
+            self.invoke_httpd('--header', 'h1:v1', 'v2')
+
+    def test_extra_header_flag_invalid_header(self):
+        with self.assertRaises(SystemExit):
+            self.invoke_httpd('--header', 'h1')
+
+        with self.assertRaises(SystemExit):
+            self.invoke_httpd('--header', ':v1')
 
     @unittest.skipIf(ssl is None, "requires ssl")
     @mock.patch('http.server.test')
@@ -1552,7 +1559,7 @@ class CommandLineTestCase(unittest.TestCase):
     @mock.patch.object(HTTPServer, 'serve_forever')
     def test_extra_response_headers_arg(self, _, mock_make_server):
         server._main(
-            ['-H', 'Set-Cookie', 'k=v', '-H', 'Set-Cookie', 'k2=v2:v3 v4', '8080']
+            ['-H', 'Set-Cookie: k=v', '-H', 'Set-Cookie:k2=v2:v3 v4', '8080']
         )
         # Get an instance of the server / RequestHandler by using
         # the spied call args, then calling _make_server with them.
@@ -1573,7 +1580,7 @@ class CommandLineTestCase(unittest.TestCase):
                 mock.ANY, mock.ANY, mock.ANY,
                 directory=mock.ANY,
                 extra_response_headers=[
-                    ['Set-Cookie', 'k=v'], ['Set-Cookie', 'k2=v2:v3 v4']
+                    ('Set-Cookie', 'k=v'), ('Set-Cookie', 'k2=v2:v3 v4')
                 ]
             )
 
